@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>По полочкам</title>
+<link rel="icon" href="/icon.png" sizes="192x192">
+<style>
+:root{--bg:#fafaf8;--fg:#1d1d1b;--mut:#65655f;--card:#fff;--line:#e3e2dc;--keep:#2f7d4f;--keep-bg:#e7f3ec;--drop:#b4532a;--drop-bg:#f8e9e2;--on:#fff;--warn-bg:#fbf2d9;--warn:#7a5a00}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1b1a;--fg:#ecebe6;--mut:#a9a8a2;--card:#252524;--line:#3a3a37;--keep:#6cc08f;--keep-bg:#22382b;--drop:#e08a63;--drop-bg:#3d2a21;--on:#1b1b1a;--warn-bg:#3a3118;--warn:#e6c76b}}
+:root{color-scheme:light dark}*{box-sizing:border-box}html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,"Segoe UI",sans-serif;margin:0;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--card)}
+header b{font-size:16px;display:flex;align-items:center;gap:8px}header b img{width:24px;height:24px}nav{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+nav button{border:0;background:none;padding:6px 10px;font-weight:500;color:var(--mut)}
+nav button.on{background:var(--keep-bg);color:var(--keep);font-weight:700}
+nav button:disabled{opacity:.45;cursor:default}
+nav button.next:not(.on){color:var(--keep);box-shadow:inset 0 -2px 0 var(--keep);border-radius:6px 6px 0 0}
+.nextstep{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;max-width:860px;margin:0 auto 12px;padding:10px 14px;border:2px solid var(--keep);border-radius:10px;background:var(--keep-bg)}
+.nextstep .mut{flex-basis:100%}.nextstep b{flex:1;min-width:220px}
+main{flex:1;min-height:0;overflow:auto;padding:16px}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:22px;margin:4px 0 8px}h2{font-size:16px;margin:20px 0 6px}
+.mut{color:var(--mut);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0}
+.notice{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:10px 12px;margin:10px 0;white-space:pre-wrap}
+button{font:inherit;font-weight:600;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+button.main{background:var(--keep);border-color:var(--keep);color:var(--on)}
+button.danger{border-color:var(--drop);color:var(--drop)}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.list{border:1px solid var(--line);border-radius:8px;max-height:44vh;overflow:auto;margin:8px 0}
+.item{display:flex;gap:10px;align-items:center;width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;text-align:left;font-weight:400;padding:8px 10px}
+.item:last-child{border-bottom:0}.item span.g{flex:1;min-width:0;word-break:break-word}
+.opt{display:flex;gap:10px;padding:7px 0;align-items:flex-start}.opt input{margin-top:4px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap}td.p{word-break:break-all;font-size:13px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:10px 0}.bar i{display:block;height:100%;background:var(--keep);width:0}
+.bar.wait i{width:30%;animation:go 1.4s infinite ease-in-out}@keyframes go{0%{margin-left:-30%}100%{margin-left:100%}}
+@media (prefers-reduced-motion:reduce){.bar.wait i{animation:none;width:100%;opacity:.4}}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);max-width:min(520px,92vw);padding:18px}
+dialog::backdrop{background:#0006}
+/* разбор */
+#rv{display:flex;flex-direction:column;height:100%}
+#rvbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:0 0 8px}
+#grid{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--tile,300px)),1fr));gap:10px;align-content:start;padding:2px}
+.ph{background:var(--card);border:3px solid var(--keep);border-radius:12px;padding:8px;min-width:0;cursor:pointer}
+.ph.keep{background:var(--keep-bg)}.ph.drop{border-color:var(--drop);background:var(--drop-bg)}
+.ph img{display:block;width:100%;height:var(--img,50vh);min-height:150px;object-fit:contain;border-radius:8px;background:var(--bg)}
+.ph.drop img{opacity:.55}
+.editnote{font-size:12px;font-weight:600;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:3px 8px;margin-bottom:6px}
+.mark{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.badge{padding:4px 10px;border-radius:6px;background:var(--keep);color:var(--on);font-weight:700}.drop .badge{background:var(--drop)}
+.mark button{font-size:12px;padding:4px 8px}.key{color:var(--mut);font-size:12px}
+.info{font-size:12px;color:var(--mut);margin-top:6px;word-break:break-word}
+.info button{font-size:12px;font-weight:400;padding:0;border:0;background:none;color:inherit;text-decoration:underline}
+#rvfoot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;padding-top:10px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:6px}
+.thumbs img{width:100%;height:120px;object-fit:contain;background:var(--bg);border-radius:6px}
+/* без даты */
+.ckgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
+.ck{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:8px;min-width:0}
+.ck.set{border-color:var(--keep);background:var(--keep-bg)}
+.ck .pic{display:block;width:100%;height:200px;object-fit:contain;background:var(--bg);border-radius:6px;cursor:pointer}
+.ck input[type=month],.ck input[type=number],.ckbulk input{font:inherit;padding:5px}
+.hint{text-align:left;font-weight:400;display:flex;gap:8px;align-items:center}
+.hint img{width:44px;height:44px;object-fit:cover;border-radius:4px;flex:none}
+/* обучение */
+#tour{width:min(680px,94vw);max-width:none;max-height:92vh;padding:0;overflow:hidden}
+#tour[open]{display:flex;flex-direction:column}
+#tourbody{padding:16px 20px;overflow:auto;flex:1;min-height:0}
+#tourbody h2{font-size:20px;margin:6px 0 8px}
+#tourtop{display:flex;align-items:center;gap:10px;padding:14px 20px 0}
+#tourdots{display:flex;gap:6px;flex:1}#tourdots i{height:5px;flex:1;border-radius:3px;background:var(--line)}#tourdots i.on{background:var(--keep)}
+#tourfoot{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:12px 20px;border-top:1px solid var(--line)}
+.points{display:grid;gap:8px;margin:10px 0}
+.point{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.point b{display:block}
+.num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--keep);color:var(--on);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.way{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px 10px;align-items:center;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0}
+.way code{font:inherit;word-break:break-word}.way span{color:var(--mut)}
+.demo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.demo .ph{padding:6px;border-radius:10px}.demo .ph:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.demo .ph.drop svg{opacity:.55}.demo svg{display:block;width:100%;height:auto;border-radius:6px}
+.demo .mark{margin-bottom:4px}.demo .badge{font-size:12px;padding:2px 7px}
+.demo .mark button{font-size:11px;padding:2px 6px}
+#tourfeedback{min-height:42px;margin:6px 0 0}
+@media (max-width:520px){.demo{grid-template-columns:1fr 1fr}#tourfoot{justify-content:center}}
+</style>
+</head>
+<body>
+<header><b><img src="/icon.png" alt="">По полочкам</b><nav id="nav"></nav><span id="rootname" class="mut"></span><button id="pausebtn" type="button" hidden title="Сохранить всё и отпустить диск, чтобы его можно было безопасно извлечь">Пауза</button><button id="tourbtn" type="button">Обучение</button><button id="aboutbtn" type="button">О программе</button><button id="quit" type="button">Выйти</button></header>
+<main id="main"></main>
+<dialog id="dlg"><h2 id="dlgt" style="margin-top:0"></h2><div id="dlgb" style="white-space:pre-wrap"></div>
+<div class="row" style="justify-content:flex-end;margin-top:14px"><button id="dlgno" type="button">Отмена</button><button id="dlgok" class="main" type="button"></button></div></dialog>
+<dialog id="disk" aria-labelledby="diskt"><h2 id="diskt" style="margin-top:0"></h2><div id="diskb" style="white-space:pre-wrap"></div><p id="diskwait" class="mut" role="status"></p>
+<div class="row" style="justify-content:flex-end;margin-top:14px"><button id="diskpick" type="button">Выбрать папку заново</button><button id="diskquit" type="button">Закрыть программу</button><button id="diskgo" class="main" type="button">Продолжить</button></div></dialog>
+<dialog id="about" aria-labelledby="abouttitle"><h2 id="abouttitle" style="margin-top:0;display:flex;align-items:center;gap:10px"><img src="/icon.png" alt="" width="40" height="40">По полочкам</h2>
+<p id="aboutver"></p>
+<p class="mut">Работает без интернета. Если что-то пошло не так, сохраните отчёт и отправьте его автору программы. В отчёте нет снимков, только версия, сведения о Windows, ход операций и журнал ошибок. Это обычный текстовый файл: его можно открыть и прочитать перед отправкой.</p>
+<label for="aboutnote">Что случилось (по желанию)</label>
+<textarea id="aboutnote" rows="3" style="width:100%;font:inherit;padding:6px;margin:4px 0 10px"></textarea>
+<div id="aboutdone" class="notice" hidden></div>
+<div class="row" style="justify-content:flex-end"><button id="aboutclose" type="button">Закрыть</button><button id="aboutsave" class="main" type="button">Сохранить отчёт на рабочий стол</button></div></dialog>
+<dialog id="tour" aria-labelledby="tourtitle"><div id="tourtop"><div id="tourdots"></div><span id="tourstep" class="mut"></span></div><div id="tourbody"></div><div id="tourfoot"></div></dialog>
+<script>
+const TOKEN = "{{TOKEN}}";
+history.replaceState(null, "", "/");
+const $ = id => document.getElementById(id);
+const main = $("main");
+let S = {}, screen = "pick", rv = {mode: "dups", pos: 0, group: null}, pollT = null;
+
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "on") for (const [ev, f] of Object.entries(v)) e.addEventListener(ev, f);
+    else if (k === "cls") e.className = v;
+    else if (k in e && k !== "list") e[k] = v;
+    else e.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined) e.append(k);
+  return e;
+}
+const btn = (label, fn, cls) => el("button", {type: "button", cls: cls || "", on: {click: fn}}, label);
+const num = n => (n ?? 0).toLocaleString("ru-RU");
+function size(b) {
+  if (b > 0 && b < 2**20) return "меньше 1 МБ";
+  if (b >= 2**30) return (b / 2**30).toLocaleString("ru-RU", {maximumFractionDigits: 1}) + " ГБ";
+  return Math.round(b / 2**20).toLocaleString("ru-RU") + " МБ";
+}
+function minutes(sec) {
+  if (sec < 60) return "меньше минуты";
+  const m = Math.round(sec / 60);
+  if (m < 60) return "примерно " + m + " мин";
+  return "примерно " + Math.floor(m / 60) + " ч " + (m % 60) + " мин";
+}
+// Запросы, которым не нужен диск: они работают и при паузе, и когда диск отключён.
+const NO_DISK = new Set(["/api/state", "/api/disk", "/api/pause", "/api/resume", "/api/ping", "/api/bye", "/api/client_error", "/api/quit",
+  "/api/open", "/api/pick_folder", "/api/report_problem", "/api/tutorial/done"]);
+// Пометки, поставленные без диска, не теряются: их отправим, когда диск вернётся.
+const RETRY = new Set(["/api/review/mark", "/api/check/set"]);
+async function request(path, init) {
+  const base = path.split("?")[0];
+  if (disk.state !== "ok" && !NO_DISK.has(base)) return hold(base, path, init);
+  const r = await fetch(path, init);
+  const j = await r.json();
+  if (r.status === 503 && j.disk) { diskDown(j.disk); return hold(base, path, init); }
+  return j;
+}
+// Ответа не будет, пока нет диска: экран перерисуется, когда диск вернётся, а пометки уйдут из очереди.
+function hold(base, path, init) {
+  if (RETRY.has(base)) disk.queue.push([path, init]);
+  return new Promise(() => {});
+}
+const get = path => request(path, {headers: {"X-Token": TOKEN}});
+const post = (path, data) => request(path, {method: "POST", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: JSON.stringify(data || {})});
+
+/* ---------- отключённый диск и пауза ---------- */
+const disk = {state: "ok", queue: [], timer: null};
+function drawDisk() {
+  const paused = disk.state === "paused", n = disk.queue.length;
+  $("diskt").textContent = paused ? "Пауза" : "Диск отключён";
+  $("diskb").textContent = paused
+    ? "Всё сохранено, программа не держит диск. Его можно безопасно извлечь через значок в углу экрана.\n\nЧтобы продолжить, подключите диск и нажмите «Продолжить»."
+    : "Папка «" + (S.root || "") + "» больше не видна: похоже, диск отключили. Всё, что вы сделали до этого, сохранено" +
+      (n ? ", а последние пометки (" + n + ") запишутся, когда диск вернётся." : ".") +
+      "\n\nПодключите диск — программа продолжит сама, с того же места.\nЕсли Windows дала диску другую букву, нажмите «Выбрать папку заново» и укажите его.";
+  $("diskgo").hidden = !paused;
+  $("diskpick").hidden = paused;
+  $("diskwait").textContent = paused ? "" : "Ждём диск…";
+}
+function diskDown(state) {
+  if (state === "ok") return;
+  disk.state = state;
+  drawDisk();
+  if (!$("disk").open) $("disk").showModal();
+  if (!disk.timer) disk.timer = setInterval(watchDisk, 2000);
+}
+async function watchDisk() {
+  let r;
+  try { r = await (await fetch("/api/disk", {headers: {"X-Token": TOKEN}})).json(); } catch (e) { return; }
+  if (r.disk === "ok") return diskUp();
+  if (r.disk !== disk.state) { disk.state = r.disk; drawDisk(); }
+}
+async function diskUp() {
+  clearInterval(disk.timer); disk.timer = null;
+  disk.state = "ok";
+  const queue = disk.queue.splice(0);
+  for (let i = 0; i < queue.length; i++) {        // пометки — в том порядке, в каком их ставили
+    if (!await sent(...queue[i])) {               // диск снова пропал: текущая уже в очереди, добавляем остальные
+      disk.queue.push(...queue.slice(i + 1));
+      return;
+    }
+  }
+  $("disk").close();
+  if (screen === "review" && rv.group) rv.keepPos = rv.pos;
+  go(screen || "report");
+}
+// true — запрос выполнен; false — диск снова пропал, пока он шёл (тогда он сам встал в очередь).
+function sent(path, init) {
+  return new Promise(res => {
+    const t = setInterval(() => { if (disk.state !== "ok") { clearInterval(t); res(false); } }, 200);
+    request(path, init).then(() => { clearInterval(t); res(true); });
+  });
+}
+$("disk").addEventListener("cancel", e => e.preventDefault());     // Esc окно не закрывает: без диска работать нельзя
+$("diskgo").onclick = async () => {
+  $("diskgo").disabled = true;
+  const r = await post("/api/resume");
+  $("diskgo").disabled = false;
+  if (r.disk === "ok") return diskUp();
+  $("diskwait").textContent = r.error || "";
+};
+$("diskpick").onclick = () => {
+  clearInterval(disk.timer); disk.timer = null;
+  const lost = disk.queue.length;
+  disk.queue = []; disk.state = "ok";       // в другой папке эти номера снимков значат другое
+  $("disk").close();
+  go("pick");
+  if (lost) tell("Последние пометки не записаны", "Пометок, поставленных без диска: " + lost + ". Когда папка откроется, поставьте их ещё раз.");
+};
+$("diskquit").onclick = () => { $("disk").close(); $("quit").click(); };
+$("pausebtn").onclick = async () => {
+  const busy = S.job && S.job.status === "running";
+  const ok = await ask("Поставить на паузу?", "Программа сохранит всё и отпустит диск: после этого его можно безопасно извлечь." +
+    (busy ? "\nИдущая работа остановится и потом продолжится с того же места." : ""), "Пауза");
+  if (!ok) return;
+  const r = await post("/api/pause");
+  if (r.error) return tell("Не получилось", r.error);
+  diskDown(r.disk);
+};
+// Диск могут выдернуть, когда на экране ничего не происходит: проверяем сами.
+setInterval(() => { if (S.root && disk.state === "ok") get("/api/disk").then(r => { if (r.disk !== "ok") diskDown(r.disk); }); }, 3000);
+function ask(title, text, ok, oneButton) {
+  return new Promise(res => {
+    $("dlgt").textContent = title; $("dlgb").textContent = text; $("dlgok").textContent = ok;
+    $("dlgno").hidden = !!oneButton;
+    const d = $("dlg"), done = v => { d.close(); $("dlgok").onclick = $("dlgno").onclick = null; res(v); };
+    $("dlgok").onclick = () => done(true); $("dlgno").onclick = () => done(false);
+    d.showModal();
+  });
+}
+const tell = (title, text) => ask(title, text, "Понятно", true);
+
+/* ---------- о программе и отчёт ---------- */
+function openAbout() {
+  const v = S.version || "версия неизвестна";
+  $("aboutver").textContent = v[0].toUpperCase() + v.slice(1) + ".";
+  $("aboutdone").hidden = true;
+  $("aboutsave").disabled = false;
+  $("about").showModal();
+}
+$("aboutbtn").onclick = openAbout;
+$("aboutclose").onclick = () => $("about").close();
+$("aboutsave").onclick = async () => {
+  $("aboutsave").disabled = true;
+  const r = await post("/api/report_problem", {note: $("aboutnote").value});
+  const done = $("aboutdone");
+  done.hidden = false;
+  done.textContent = r.path ? "Отчёт сохранён на рабочий стол, папка открыта в проводнике:\n" + r.path.split("\\").pop() : "Не получилось: " + (r.error || "неизвестная ошибка");
+  $("aboutsave").disabled = false;
+};
+// Ошибки страницы — в журнал ошибок программы, чтобы они попали в отчёт.
+let clientErrors = 0;
+function reportClientError(text) {
+  if (clientErrors++ > 20) return;
+  try { post("/api/client_error", {message: text}).catch(() => {}); } catch (e) {}
+}
+window.addEventListener("error", e => reportClientError((e.message || "ошибка") + " @" + (e.lineno || "?") + ":" + (e.colno || "?") + (e.error && e.error.stack ? "\n" + e.error.stack : "")));
+window.addEventListener("unhandledrejection", e => reportClientError("promise: " + (e.reason && (e.reason.stack || e.reason.message) || e.reason)));
+
+const TABS = [["pick", "Папка"], ["settings", "Настройки"], ["report", "Анализ и раскладка"], ["review", "Разбор похожих"], ["check", "Без даты"], ["finish", "Итог"], ["history", "История и откат"]];
+// Шаги по порядку: номер и галочка на вкладке, подсказка «Следующий шаг» над экраном.
+// Вкладки остаются: ходить между ними можно в любом порядке.
+const STEP_DONE = {
+  pick: () => !!S.root,
+  settings: () => !!S.analysis,
+  report: () => !!S.analysis && !S.layout_moves,
+  review: () => !!S.analysis && S.review_unseen === 0 && S.review_pending === 0,
+  check: () => !!S.analysis && !S.layout_moves && !S.undated,
+};
+const STEP_IDS = ["pick", "settings", "report", "review", "check", "finish"];
+function nextStep() {
+  const j = S.job;
+  if (j && j.status === "running") {
+    const what = {analyze: "Идёт анализ", layout: "Идёт раскладка", review: "Применяются итоги разбора", check: "Файлы переезжают по указанным датам", rollback: "Идёт отмена операции"}[j.name] || "Идёт работа";
+    return {id: "report", text: what + (j.total ? ": " + Math.round(100 * j.done / j.total) + "%" : "") + ".", label: "Посмотреть"};
+  }
+  if (!S.root) return {id: "pick", text: "Выберите папку или диск с фото.", label: "Выбрать папку"};
+  if (!S.analysis) return {id: "settings", text: "Проверьте настройки и запустите анализ. Файлы при этом не меняются.", label: "К настройкам"};
+  if (S.layout_moves) return {id: "report", text: "Разложите файлы по годам. Ждут раскладки: " + num(S.layout_moves) + ".", label: "К плану раскладки"};
+  if (S.review_unseen) return {id: "review", text: "Разберите похожие кадры. Не просмотрено групп: " + num(S.review_unseen) + ".", label: "К разбору похожих"};
+  if (S.review_pending) return {id: "review", text: "Примените пометки разбора. Ждут переноса: " + num(S.review_pending) + ".", label: "К итогам разбора",
+    act: () => { screen = "review"; drawNav(); finishReview(); }};
+  if (S.undated) return {id: "check", text: "По желанию: укажите даты для файлов без даты. Таких файлов: " + num(S.undated) + ".", label: "Указать даты", skip: "finish"};
+  return {id: "finish", text: "Всё разложено. Осталось посмотреть итог.", label: "К итогу"};
+}
+function drawNextStep() {
+  const n = nextStep();
+  // На экране самого шага главная кнопка и так видна, разбору нужна вся высота, а необязательный шаг в «Итоге» уже описан.
+  if (screen === n.id || screen === "review" || screen === n.skip) return;
+  main.append(el("div", {cls: "nextstep", role: "status"},
+    el("span", {cls: "mut"}, "Следующий шаг"), el("b", {}, n.text),
+    el("span", {cls: "row"}, btn(n.label, n.act || (() => go(n.id)), "main"),
+      n.skip && screen !== n.skip ? btn("Пропустить, к итогу", () => go(n.skip)) : null)));
+}
+function drawNav() {
+  const nav = $("nav"); nav.textContent = "";
+  const next = nextStep().id;
+  for (const [id, label] of TABS) {
+    const needRoot = id !== "pick", needAnalysis = id === "review" || id === "finish" || id === "check";
+    const n = STEP_IDS.indexOf(id), done = STEP_DONE[id] && STEP_DONE[id]();
+    const b = btn(n >= 0 ? (n + 1) + ". " + label + (done ? " ✓" : "") : label, () => go(id));
+    b.disabled = (needRoot && !S.root) || (needAnalysis && !S.analysis);
+    if (done) b.title = "Готово";
+    if (id === next && !b.disabled) { b.classList.add("next"); b.title = "Следующий шаг"; }
+    if (screen === id) b.classList.add("on");
+    nav.append(b);
+  }
+  $("rootname").textContent = S.root || "";
+  $("pausebtn").hidden = !S.root;
+}
+async function refresh() { S = await get("/api/state"); drawNav(); if (S.disk && S.disk !== "ok") diskDown(S.disk); }
+async function go(id) {
+  screen = id; await refresh();
+  main.textContent = "";
+  drawNextStep();
+  await ({pick: drawPick, settings: drawSettings, report: drawReport, review: drawReview, check: drawCheck, finish: drawFinish, history: drawHistory}[id])();
+  drawNav();
+}
+
+/* ---------- выбор папки ---------- */
+async function drawPick() {
+  const box = el("div", {cls: "wrap"});
+  main.append(box);
+  box.append(el("h1", {}, "Какую папку разобрать?"),
+    el("p", {}, "Программа разложит фото и видео по годам, найдёт копии и поможет выбрать лучшие кадры из похожих."),
+    el("div", {cls: "card"}, el("b", {}, "Как это работает"),
+      el("p", {style: "margin:6px 0 0"}, "Всё происходит только на этом компьютере: фото никуда не отправляются, интернет не нужен. Сначала программа только смотрит и показывает план. Файлы перемещаются внутри выбранного диска после вашего подтверждения, и это можно отменить. Сама программа файлы не удаляет.")));
+  box.append(el("div", {cls: "row"}, btn("Выбрать папку", pickFolder, "main"), el("span", {cls: "mut", id: "pickhint"})));
+  if (S.recent && S.recent.length) {
+    box.append(el("h2", {}, "Недавние папки"), el("div", {cls: "list"}, S.recent.map(p => el("button", {type: "button", cls: "item", on: {click: () => openRoot(p)}}, el("span", {cls: "g"}, p)))));
+  }
+  waitPick();     // окно могло остаться открытым после обновления страницы
+}
+let picking = false;
+async function pickFolder() {
+  await post("/api/pick_folder");
+  waitPick();
+}
+async function waitPick() {
+  if (picking) return;
+  picking = true;
+  let s;
+  try {
+    while (true) {
+      s = await get("/api/pick_folder");
+      const hint = $("pickhint");
+      if (hint) hint.textContent = s.status === "open" ? "Окно выбора открыто. Если его не видно, нажмите кнопку ещё раз." : "";
+      if (s.status !== "open") break;
+      await new Promise(r => setTimeout(r, 300));
+    }
+  } finally { picking = false; }
+  if (s.status === "done") return openRoot(s.path);
+  if (s.status === "error") return tell("Окно выбора папки не открылось", s.message);
+}
+async function openRoot(path) {
+  const r = await post("/api/open", {path});
+  if (r.error) return tell("Эта папка не подходит", r.error);
+  await refresh();
+  const started = S.analysis;
+  go(started ? "report" : "settings");
+}
+
+/* ---------- настройки ---------- */
+async function drawSettings() {
+  const box = el("div", {cls: "wrap"}); main.append(box);
+  const st = S.settings, keep = new Set(st.keep_folders);
+  const opts = [["separate_screens", "Скриншоты отдельно", "Папка «Скриншоты», внутри по годам."],
+    ["separate_live", "Короткие видео от Live Photos отдельно", "Иначе они перемешаются с обычными видео."],
+    ["separate_scans", "Сканы отдельно", "Снимки с плёночных сканеров: у них дата сканирования, а не съёмки."],
+    ["fix_file_dates", "Исправлять дату файла", "Дата файла в проводнике станет датой съёмки. Содержимое фото не меняется."]];
+  const inputs = {};
+  box.append(el("h1", {}, "Настройки"), el("h2", {}, "Что отделять"),
+    el("div", {cls: "card"}, opts.map(([k, t, d]) => {
+      inputs[k] = el("input", {type: "checkbox", checked: st[k], id: "o_" + k});
+      return el("label", {cls: "opt"}, inputs[k], el("span", {}, t, el("br"), el("span", {cls: "mut"}, d)));
+    })));
+  const tree = el("div", {cls: "list", style: "max-height:40vh"});
+  box.append(el("h2", {}, "Какие папки не раскладывать по датам"),
+    el("p", {cls: "mut"}, "Отметьте готовые альбомы, например «Свадьба» или «Отпуск 2023». Они останутся как есть, из них уберутся только точные копии внутри одной папки."), tree);
+  const addLevel = async (sub, into, depth) => {
+    const r = await get("/api/folders?sub=" + encodeURIComponent(sub));
+    if (!r.folders.length && !sub) into.append(el("div", {cls: "item mut"}, "В этой папке нет вложенных папок"));
+    for (const n of r.folders) {
+      const rel = sub ? sub + "\\" + n : n;
+      const cb = el("input", {type: "checkbox", checked: keep.has(rel), on: {change: e => e.target.checked ? keep.add(rel) : keep.delete(rel)}});
+      const kids = el("div", {style: "margin-left:22px"});
+      let opened = false;
+      const more = depth < 3 ? btn("Внутри", async () => { if (opened) return; opened = true; more.disabled = true; await addLevel(rel, kids, depth + 1); }) : null;
+      if (more) { more.style.fontSize = "12px"; more.style.padding = "2px 8px"; }
+      into.append(el("div", {}, el("label", {cls: "item"}, cb, el("span", {cls: "g"}, n), more), kids));
+    }
+  };
+  await addLevel("", tree, 1);
+  box.append(el("div", {cls: "row", style: "margin-top:14px"}, btn("Сохранить и начать анализ", async () => {
+    await post("/api/settings", {keep_folders: [...keep], ...Object.fromEntries(Object.entries(inputs).map(([k, i]) => [k, i.checked]))});
+    await post("/api/analyze");
+    go("report");
+  }, "main")),
+  el("p", {cls: "mut"}, "Анализ только читает файлы. Служебные данные лежат в папке «_Разбор фото» внутри выбранной папки."));
+}
+
+/* ---------- анализ и раскладка ---------- */
+async function drawJob(box, title, then) {
+  const stage = el("div", {}), bar = el("div", {cls: "bar"}, el("i")), note = el("div", {cls: "mut"});
+  const stop = btn("Остановить", async () => { stop.disabled = true; stop.textContent = "Останавливаем…"; await post("/api/cancel"); });
+  box.append(el("h1", {}, title), el("div", {cls: "card"}, stage, bar, note, el("div", {cls: "row", style: "margin-top:10px"}, stop)),
+    el("p", {cls: "mut"}, "Можно закрыть окно: работа продолжится. Чтобы вернуться, запустите программу снова. После остановки или обрыва работа продолжится с того же места."));
+  return new Promise(res => {
+    const tick = async () => {
+      if (screenToken !== token) return;
+      await refresh();
+      const j = S.job;
+      if (!j || j.status !== "running") return res(j);
+      stage.textContent = j.stage;
+      bar.className = j.total ? "bar" : "bar wait";
+      bar.firstChild.style.width = j.total ? (100 * j.done / j.total) + "%" : "";
+      note.textContent = j.total ? num(j.done) + " из " + num(j.total) + (j.eta !== null ? ", осталось " + minutes(j.eta) : "") : "Считаем…";
+      setTimeout(tick, 1000);
+    };
+    const token = ++screenToken;
+    tick();
+  });
+}
+let screenToken = 0;
+
+async function drawReport() {
+  const box = el("div", {cls: "wrap"}); main.append(box);
+  if (S.job && S.job.status === "running" && ["analyze", "layout", "review", "check", "rollback"].includes(S.job.name)) {
+    const titles = {analyze: "Анализ", layout: "Раскладка", review: "Применяем итоги разбора", check: "Переносим файлы по указанным датам", rollback: "Отмена операции"};
+    const j = await drawJob(box, titles[S.job.name]);
+    if (screen !== "report" || !j) return;
+    if (j.status === "failed") await tell("Работа остановилась", j.error || "Неизвестная ошибка");
+    else if (j.status === "done" && j.name === "rollback") await tell("Операция отменена", rollbackText(j.result));
+    else if (j.status === "done" && j.name === "review" && S.layout_moves) {
+      // Без этого после разбора похожих легко решить, что всё готово, хотя по годам ещё ничего не разложено.
+      await tell("Готово", movedText(j.result) + "\n\nОсталось разложить по годам и месяцам: " + num(S.layout_moves) + " файлов. Посмотрите план и нажмите «Разложить файлы».");
+      return go("report");
+    }
+    else if (j.status === "done" && ["layout", "review", "check"].includes(j.name)) await tell("Готово", movedText(j.result));
+    if (j.name === "check") return go("check");
+    return go(j.name === "review" && j.status === "done" ? "finish" : j.name === "rollback" ? "history" : "report");
+  }
+  if (!S.analysis) {
+    box.append(el("h1", {}, "Анализ"), el("p", {}, "Программа прочитает даты, найдёт копии и похожие снимки. Файлы при этом не меняются. На большом архиве это может занять несколько часов, прервать можно в любой момент."));
+    if (S.job && S.job.status === "cancelled") box.append(el("div", {cls: "notice"}, "Анализ остановлен. Готовые части сохранились: при запуске он продолжится почти с того же места."));
+    if (S.job && S.job.status === "failed") box.append(el("div", {cls: "notice"}, S.job.error || "Анализ остановился с ошибкой."));
+    box.append(el("div", {cls: "row"}, btn(S.job ? "Продолжить анализ" : "Начать анализ", async () => { await post("/api/analyze"); go("report"); }, "main"), btn("Настройки", () => go("settings"))));
+    return;
+  }
+  const a = S.analysis, r = await get("/api/report");
+  box.append(el("h1", {}, "План готов"), el("p", {}, "Просмотрено файлов: " + num(a.files) + ". " +
+    (r.moves ? "Папки по годам появятся после кнопки «Разложить файлы» под таблицей." : "Всё уже разложено.")));
+  if (a.cloud) box.append(el("div", {cls: "notice"}, "Пропущено файлов, которые не скачаны из облака: " + num(a.cloud) + "."));
+  if (a.errors) box.append(el("div", {cls: "notice"}, "Не удалось прочитать файлов или папок: " + num(a.errors) + ". Они останутся на месте."));
+  if (r.unreadable) box.append(el("div", {cls: "notice"}, "Не открылось снимков: " + num(r.unreadable) + ". Возможно, они повреждены. Они не удаляются, но в разборе похожих их не будет."));
+  if (S.open_layout) box.append(el("div", {cls: "notice"}, "Прошлая раскладка не закончена. Кнопка ниже продолжит её с того же места."));
+  const details = el("div", {});
+  const table = el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Что будет сделано"), el("th", {cls: "n"}, "Файлов"), el("th", {cls: "n"}, "Размер"), el("th", {}))),
+    el("tbody", {}, r.actions.map(x => el("tr", {}, el("td", {}, x.title), el("td", {cls: "n"}, num(x.files)), el("td", {cls: "n"}, size(x.bytes)),
+      el("td", {}, btn("Список", () => showRows(details, x.action, x.title)))))));
+  box.append(el("div", {cls: "card"}, r.actions.length ? table : el("div", {}, "Перемещать нечего: всё уже разложено.")), details);
+  const buttons = el("div", {cls: "row", style: "margin-top:12px"});
+  if (r.moves) buttons.append(btn(S.open_layout ? "Продолжить раскладку" : "Разложить файлы", async () => {
+    const ok = await ask("Переместить файлы?", "Будет перемещено файлов: " + num(r.moves) + ".\nФайлы переезжают внутри выбранной папки и не удаляются. Всё можно отменить в разделе «История и откат».", "Переместить");
+    if (!ok) return;
+    const res = await post("/api/apply/layout");
+    if (res.error) return tell("Не получилось", res.error);
+    go("report");
+  }, "main"));
+  if (a.groups) buttons.append(btn("Перейти к разбору похожих", () => go("review"), r.moves ? "" : "main"));
+  buttons.append(btn("Изменить настройки", () => go("settings")), btn("Проверить заново", async () => { await post("/api/analyze"); go("report"); }));
+  box.append(buttons);
+  if (S.job && S.job.status === "failed") box.append(el("div", {cls: "notice"}, S.job.error || "Работа остановилась с ошибкой."));
+  if (r.years.length) {
+    const max = Math.max(...r.years.map(y => y[1]));
+    box.append(el("h2", {}, "По годам"), el("div", {cls: "card"}, el("table", {}, el("tbody", {}, r.years.map(([y, n]) => el("tr", {},
+      el("td", {style: "width:60px"}, y), el("td", {}, el("div", {style: `height:12px;border-radius:3px;background:var(--keep);width:${Math.max(1, 100 * n / max)}%`})), el("td", {cls: "n"}, num(n))))))));
+  }
+  box.append(el("h2", {}, "Откуда взяты даты"), el("div", {cls: "card"}, el("table", {}, el("tbody", {}, r.sources.map(x => el("tr", {}, el("td", {}, x.source), el("td", {cls: "n"}, num(x.files))))))));
+  if (r.conflicts) box.append(el("p", {cls: "mut"}, "Даты внутри файла расходились у " + num(r.conflicts) + " файлов. Взята более ранняя: снять раньше, чем файл появился, нельзя."));
+}
+async function showRows(into, action, title) {
+  into.textContent = "";
+  const tb = el("tbody"), card = el("div", {cls: "card"}, el("b", {}, title), el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Откуда"), el("th", {}, "Куда"))), tb));
+  into.append(card);
+  let offset = 0;
+  const more = btn("Показать ещё", load);
+  async function load() {
+    const d = await get(`/api/plan?op=layout&action=${encodeURIComponent(action)}&offset=${offset}`);
+    for (const r of d.rows) tb.append(el("tr", {}, el("td", {cls: "p"}, r.rel), el("td", {cls: "p"}, r.dst)));
+    offset += d.rows.length;
+    more.hidden = d.rows.length < 200;
+  }
+  card.append(more);
+  await load();
+  card.scrollIntoView({behavior: "smooth", block: "nearest"});
+}
+function movedText(r) {
+  let t = "Перемещено файлов: " + num(r.moved) + ".";
+  if (r.failed_count) t += "\nНе удалось переместить: " + num(r.failed_count) + ". Они остались на месте. Например:\n" + r.failed.slice(0, 3).map(f => f.file).join("\n");
+  return t;
+}
+function rollbackText(r) {
+  let t = "Возвращено файлов: " + num(r.back) + ".";
+  if (r.already_deleted) t += "\nУже удалены и не могут вернуться: " + num(r.already_deleted) + ".";
+  if (r.problems.length) t += "\nНе удалось вернуть: " + r.problems.length + ". Например:\n" + r.problems.slice(0, 3).join("\n");
+  return t;
+}
+
+/* ---------- разбор ---------- */
+async function drawReview() {
+  const box = el("div", {id: "rv"}); main.append(box);
+  const all = await get("/api/review/summary?mode=all");
+  if (!all.all) {
+    // Групп нет, но разбор из файла загрузить можно, а загруженные пометки — применить
+    const pick0 = el("input", {type: "file", accept: ".txt,text/plain", hidden: true, on: {change: e => { const f = e.target.files[0]; e.target.value = ""; if (f) importReview(f); }}});
+    box.append(el("div", {cls: "wrap"}, el("h1", {}, "Разбор похожих"), el("p", {}, "Групп похожих снимков не найдено."),
+      el("div", {cls: "row"}, btn("Загрузить разбор из файла", () => pick0.click()), pick0,
+        S.review_pending ? btn("Итоги разбора: " + num(S.review_pending), finishReview, "main") : null)));
+    return;
+  }
+  if (!all.with_dups) rv.mode = "all";
+  const sum = await get("/api/review/summary?mode=" + rv.mode);
+  rv.pos = rv.keepPos ?? sum.first_unseen ?? 0;      // после возвращения диска — та же группа
+  rv.keepPos = null;
+  const mode = el("select", {style: "font:inherit;padding:6px", on: {change: async e => { rv.mode = e.target.value; const s = await get("/api/review/summary?mode=" + rv.mode); rv.pos = s.first_unseen ?? 0; await loadGroup(); }}},
+    el("option", {value: "dups", selected: rv.mode === "dups"}, "Только с копиями: " + num(all.with_dups)),
+    el("option", {value: "all", selected: rv.mode === "all"}, "Все похожие: " + num(all.all)));
+  const pick = el("input", {type: "file", accept: ".txt,text/plain", hidden: true, on: {change: e => { const f = e.target.files[0]; e.target.value = ""; if (f) importReview(f); }}});
+  box.append(el("div", {id: "rvbar"}, el("b", {id: "rvpos"}), mode, el("span", {id: "rvnote", cls: "mut"}),
+    el("span", {cls: "mut"}, "Клик по фото или цифра — сменить пометку. 0 — убрать правки айфона. Enter или → — дальше, ← — назад."),
+    btn("Загрузить разбор из файла", () => pick.click()), pick),
+    el("div", {id: "grid"}),
+    el("div", {id: "rvfoot"}, btn("← Назад", () => step(-1)), btn("Оставить все", keepAll),
+      el("button", {type: "button", id: "rvedits", hidden: true, title: "Клавиша 0", on: {click: dropEdits}}),
+      el("label", {cls: "mut"}, "К группе ", el("input", {id: "jump", type: "number", min: 1, style: "width:80px;font:inherit;padding:7px", on: {change: e => { rv.pos = (+e.target.value || 1) - 1; e.target.value = ""; e.target.blur(); loadGroup(); }}})),
+      btn("Дальше →", forward, "main"), btn("Закончить разбор", finishReview)));
+  await loadGroup();
+}
+// Файл со страницы «Разбор похожих.html» или «Разбор дублей.html» (кнопки «Сохранить результат» и «Сохранить весь прогресс»).
+// Сначала показываем, что найдено, и только после согласия записываем пометки. Файлы при этом не переезжают.
+async function importReview(file) {
+  const text = await file.text();
+  const r = await post("/api/review/import", {text, write: false});
+  if (r.error) return tell("Не получилось", r.error);
+  const examples = r.missing_examples.length ? "\nНапример:\n" + r.missing_examples.slice(0, 5).join("\n") : "";
+  if (!r.found) {
+    return tell("Снимков из файла здесь нет", "В файле «" + file.name + "» строк с пометками: " + num(r.lines) + ", но ни один снимок не нашёлся в этой папке." +
+      (r.already_removed ? "\nУже лежат в «_Удалить»: " + num(r.already_removed) + "." : "") + examples +
+      "\n\nПроверьте, что выбрана та же папка или диск, для которого делался разбор.");
+  }
+  let t = "Файл «" + file.name + "».\nНашлось снимков: " + num(r.found) + " (убрать — " + num(r.drop) + ", оставить — " + num(r.keep) + ").";
+  if (r.already_removed) t += "\nУже лежат в «_Удалить»: " + num(r.already_removed) + ".";
+  if (r.missing) t += "\nНе нашлись в этой папке: " + num(r.missing) + "." + examples;
+  if (r.not_photo) t += "\nНе фото: " + num(r.not_photo) + ".";
+  if (r.bad) t += "\nНепонятных строк: " + num(r.bad) + ".";
+  t += "\n\nГруппы программы: разобраны в файле целиком — " + num(r.groups_done) + ", они будут отмечены просмотренными; частично — " +
+       num(r.groups_partial) + ", их покажем с вашими пометками.";
+  t += "\n\nСейчас ничего не переезжает. Снимки с пометкой «Убрать» переедут в «_Удалить», когда вы нажмёте «Применить» в итогах разбора, и это можно будет отменить.";
+  if (!await ask("Загрузить разбор из файла?", t, "Загрузить")) return;
+  const w = await post("/api/review/import", {text, write: true});
+  if (w.error) return tell("Не получилось", w.error);
+  await refresh();
+  await go("review");
+  tell("Разбор загружен", "Пометки из файла записаны: " + num(w.found) + ". Непросмотренные группы идут дальше по порядку. Когда закончите, нажмите «Закончить разбор» и «Применить».");
+}
+async function loadGroup() {
+  const d = await get(`/api/review/group?pos=${rv.pos}&mode=${rv.mode}`);
+  rv.group = d.group;
+  if (!rv.group) return;
+  rv.pos = rv.group.pos;
+  drawGroup();
+  get(`/api/review/group?pos=${rv.pos + 1}&mode=${rv.mode}`).then(n => { if (n.group) n.group.photos.slice(0, 12).forEach(p => { new Image().src = "/thumb?id=" + p.id; }); });
+}
+function drawGroup() {
+  const g = rv.group, grid = $("grid");
+  if (!grid) return;
+  $("rvpos").textContent = "Группа " + (g.pos + 1) + " из " + num(g.total);
+  $("rvnote").textContent = (g.date ? g.date.slice(0, 10) : "Дата неизвестна") + ", фото: " + g.photos.length + (g.seen ? ", уже смотрели" : "");
+  const n = g.photos.length;
+  grid.style.setProperty("--tile", n <= 2 ? "300px" : n <= 4 ? "280px" : "220px");
+  grid.style.setProperty("--img", n <= 2 ? "calc(100vh - 360px)" : n <= 4 ? "46vh" : n <= 8 ? "32vh" : "210px");
+  const top = grid.scrollTop;
+  grid.textContent = "";
+  const edits = g.photos.filter(p => p.edit_of);
+  const editBtn = $("rvedits");
+  if (editBtn) { editBtn.hidden = !edits.length; editBtn.textContent = "Убрать правки айфона: " + edits.length; }
+  g.photos.forEach((p, i) => {
+    const box = el("div", {cls: "ph " + (p.keep ? "keep" : "drop"), on: {click: () => mark([[p, !p.keep]])}},
+      p.edit_of ? el("div", {cls: "editnote", title: "Айфон сохраняет отредактированный снимок отдельным файлом с буквой E в имени"},
+        "Правка айфона, оригинал " + p.edit_of + " тоже здесь") : null,
+      el("div", {cls: "mark"}, el("span", {cls: "badge"}, p.keep ? "Оставить" : "Убрать"),
+        btn("Только это", e => { e.stopPropagation(); mark(g.photos.map(x => [x, x === p])); }),
+        i < 9 ? el("span", {cls: "key"}, "клавиша " + (i + 1)) : null),
+      el("img", {src: "/thumb?id=" + p.id, alt: "", loading: "lazy"}),
+      el("div", {cls: "info"}, p.path, el("br"), p.mb + " МБ" + (p.w ? ", " + p.w + "×" + p.h : "") + (p.date ? ", " + p.date : "") + " ",
+        btn("открыть", e => { e.stopPropagation(); post("/api/open_file", {id: p.id}); })));
+    grid.append(box);
+  });
+  grid.scrollTop = top;
+}
+function mark(pairs) {
+  for (const [p, v] of pairs) p.keep = v;
+  rv.group.seen = true;
+  drawGroup();
+  post("/api/review/mark", {gid: rv.group.id, marks: pairs.map(([p, v]) => [p.id, v])});
+}
+function keepAll() { mark(rv.group.photos.map(p => [p, true])); }
+// Только правки, у которых оригинал в этой же группе; пометки остальных снимков не меняются.
+function dropEdits() { const e = rv.group.photos.filter(p => p.edit_of); if (e.length) mark(e.map(p => [p, false])); }
+function step(d) { rv.pos += d; if (rv.pos < 0) rv.pos = 0; loadGroup().then(() => { const g = $("grid"); if (g) g.scrollTop = 0; }); }
+async function forward() {
+  await post("/api/review/mark", {gid: rv.group.id, marks: []});
+  rv.group.seen = true;
+  const r = await post("/api/review/next", {pos: rv.pos, mode: rv.mode});
+  if (r.pos === null) {
+    const go2 = await ask("Группы закончились", "Дальше непросмотренных групп нет. Перейти к итогам разбора?", "Перейти");
+    if (go2) finishReview();
+    return;
+  }
+  rv.pos = r.pos; await loadGroup(); const g = $("grid"); if (g) g.scrollTop = 0;
+}
+async function finishReview() {
+  main.textContent = "";
+  const box = el("div", {cls: "wrap"}); main.append(box);
+  const plan = await post("/api/review/plan"), empty = await get("/api/review/empty");
+  box.append(el("h1", {}, "Итоги разбора"),
+    el("div", {cls: "card"}, el("table", {}, el("tbody", {},
+      el("tr", {}, el("td", {}, "Перенести в папку «_Удалить»"), el("td", {cls: "n"}, num(plan.remove) + ", " + size(plan.remove_bytes))),
+      el("tr", {}, el("td", {}, "Вернуть из «_Дубли» по датам"), el("td", {cls: "n"}, num(plan.restore))),
+      el("tr", {}, el("td", {}, "Групп ещё не смотрели, их не трогаем"), el("td", {cls: "n"}, num(plan.unseen)))))),
+    el("p", {}, "Здесь ничего не удаляется: фото с пометкой «Убрать» только переедут в одну папку, и это можно отменить."));
+  if (S.layout_moves) box.append(el("p", {cls: "mut"}, "По годам и месяцам эти пометки ничего не раскладывают: это отдельная кнопка «Разложить файлы» на вкладке «Анализ и раскладка»."));
+  box.append(el("div", {cls: "row"}, btn("Применить", async () => {
+    const ok = await ask("Применить пометки?", "В «_Удалить» переедет: " + num(plan.remove) + ". Вернётся из «_Дубли»: " + num(plan.restore) + ".\nОтменить можно в разделе «История и откат».", "Применить");
+    if (!ok) return;
+    const r = await post("/api/review/apply");
+    if (r.error) return tell("Не получилось", r.error);
+    go("report");
+  }, "main"), btn("Вернуться к разбору", () => go("review"))));
+  if (empty.groups.length) {
+    box.append(el("div", {cls: "notice"}, "В " + num(empty.groups.length) + " группах убраны все снимки. Посмотрите их: если потом удалить папку «_Удалить», от этих кадров не останется ни одной копии."));
+    for (const g of empty.groups.slice(0, 200)) {
+      box.append(el("div", {cls: "card"}, el("div", {cls: "row"}, el("b", {}, "Группа " + (g.pos + 1) + (g.date ? ", " + g.date.slice(0, 10) : "")),
+        btn("Вернуться к ней", () => { rv.mode = "all"; screen = "review"; main.textContent = ""; openAt(g.pos); })),
+        el("div", {cls: "thumbs"}, g.photos.map(p => el("img", {src: "/thumb?id=" + p.id, alt: "", loading: "lazy"})))));
+    }
+  }
+}
+async function openAt(pos) {
+  await drawReview();
+  rv.pos = pos; await loadGroup(); drawNav();
+}
+document.addEventListener("keydown", e => {
+  if ($("tour").open) return tourKey(e);
+  if (screen !== "review" || !rv.group || !$("grid") || e.target.id === "jump" || e.target.tagName === "SELECT" || $("dlg").open || $("about").open) return;
+  if (e.key === "ArrowRight" || e.key === "Enter") { e.preventDefault(); forward(); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+  else if (e.key >= "1" && e.key <= "9") { const p = rv.group.photos[+e.key - 1]; if (p) mark([[p, !p.keep]]); }
+  else if (e.key === "0") dropEdits();
+});
+
+/* ---------- без даты ---------- */
+// Файлы из «_Проверить»: человек указывает год или месяц, программа переносит их в папки по годам.
+let ck = {offset: 0, picked: new Set()};
+const MONTHS = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+const dateLabel = v => v.includes("-") ? MONTHS[+v.slice(5) - 1] + " " + v.slice(0, 4) : v + " год";
+async function setDates(pairs) {
+  const r = await post("/api/check/set", {values: pairs});
+  if (r.error) { await tell("Не получилось", r.error); return false; }
+  return true;
+}
+function dateEditor(onPick) {
+  // Месяц из календаря или только год, если месяц неизвестен.
+  const month = el("input", {type: "month", min: "1990-01", max: new Date().toISOString().slice(0, 7), "aria-label": "Месяц и год"});
+  const year = el("input", {type: "number", min: 1990, max: new Date().getFullYear(), placeholder: "или только год", style: "width:150px", "aria-label": "Только год"});
+  month.addEventListener("change", () => { if (month.value) onPick(month.value); });
+  year.addEventListener("change", () => { if (/^\d{4}$/.test(year.value)) onPick(year.value); });
+  return [month, year];
+}
+async function drawCheck() {
+  const box = el("div", {cls: "wrap", style: "max-width:1100px"}); main.append(box);
+  const d = await get("/api/check/list?offset=" + ck.offset);
+  if (d.items.length === 0 && d.total > 0) { ck.offset = 0; return go("check"); }
+  box.append(el("h1", {}, "Без даты"),
+    el("p", {}, "Здесь файлы из папки «_Проверить»: в них не нашлось даты съёмки. Укажите месяц или хотя бы год, и файл переедет в папку по годам. Подсказки — только догадки, сверьтесь со снимком: щёлкните по нему, чтобы открыть."));
+  if (!d.total) {
+    box.append(el("div", {cls: "card"}, S.layout_moves ? "Сначала разложите файлы на вкладке «Анализ и раскладка»: снимки без даты окажутся здесь." : "В «_Проверить» нет ни одного файла. Всё разложено по датам."));
+    return;
+  }
+  const picked = ck.picked;
+  const redraw = async () => { const y = main.scrollTop; await go("check"); main.scrollTop = y; };   // не прыгать к началу страницы
+  const bulkNote = el("span", {cls: "mut"});
+  const showPicked = () => { bulkNote.textContent = picked.size ? "Отмечено: " + num(picked.size) : "Отметьте файлы галочкой, чтобы указать дату сразу нескольким"; };
+  const bulk = el("div", {cls: "card row ckbulk"}, bulkNote,
+    ...dateEditor(async v => {
+      if (!picked.size) return tell("Ничего не отмечено", "Отметьте файлы галочкой, а потом выберите дату.");
+      if (await setDates([...picked].map(id => [id, v]))) { picked.clear(); redraw(); }
+    }),
+    btn("Отметить все на странице", () => { d.items.forEach(x => picked.add(x.id)); redraw(); }),
+    btn("Снять отметки", () => { picked.clear(); redraw(); }));
+  box.append(bulk);
+  showPicked();
+  const grid = el("div", {cls: "ckgrid"});
+  for (const x of d.items) {
+    const open = () => post("/api/open_file", {id: x.id});
+    const pic = x.kind === "photo"
+      ? el("img", {cls: "pic", src: "/thumb?id=" + x.id, alt: x.name, loading: "lazy", title: "Открыть снимок", on: {click: open}})
+      : el("button", {type: "button", cls: "pic", on: {click: open}}, "Видео: открыть");
+    const choose = async v => { if (await setDates([[x.id, v]])) redraw(); };
+    const tick = el("input", {type: "checkbox", checked: picked.has(x.id), "aria-label": "Отметить " + x.name,
+      on: {change: e => { e.target.checked ? picked.add(x.id) : picked.delete(x.id); showPicked(); }}});
+    const status = x.value
+      ? el("div", {cls: "row"}, el("span", {cls: "badge"}, dateLabel(x.value)), btn("Убрать дату", () => choose(null)))
+      : el("div", {cls: "mut"}, "Дата не указана: файл останется в «_Проверить»");
+    grid.append(el("div", {cls: "ck" + (x.value ? " set" : "")},
+      el("label", {cls: "row", style: "margin-bottom:6px;word-break:break-all"}, tick, el("b", {}, x.name)),
+      pic,
+      el("div", {cls: "info"}, x.folder ? "Была в папке: " + x.folder : "Лежала в корне"),
+      el("div", {style: "margin:8px 0;display:grid;gap:6px"}, status,
+        x.hints.map(h => el("button", {type: "button", cls: "hint", on: {click: () => choose(h.value)}},
+          h.thumb ? el("img", {src: "/thumb?id=" + h.thumb, alt: ""}) : null,
+          el("span", {}, "Взять: " + h.label)))),
+      el("div", {cls: "row"}, ...dateEditor(choose))));
+  }
+  box.append(grid);
+  const last = Math.min(d.offset + d.items.length, d.total);
+  box.append(el("div", {cls: "row", style: "justify-content:center;margin:12px 0"},
+    btn("← Назад", () => { ck.offset = Math.max(0, d.offset - d.page); go("check"); }),
+    el("span", {cls: "mut"}, num(d.offset + 1) + "–" + num(last) + " из " + num(d.total)),
+    btn("Дальше →", () => { ck.offset = d.offset + d.page; go("check"); })));
+  box.lastChild.firstChild.disabled = d.offset === 0;
+  box.lastChild.lastChild.disabled = last >= d.total;
+  box.append(el("div", {cls: "card row"}, el("span", {}, "Дата указана у " + num(d.decided) + " из " + num(d.total) + ". "),
+    btn("Перенести по датам", async () => {
+      const plan = await post("/api/check/plan");
+      if (!plan.moves) return tell("Нечего переносить", "Сначала укажите дату хотя бы у одного файла.");
+      const ok = await ask("Перенести файлы?", "Переедет в папки по годам: " + num(plan.moves) + ".\nДата самих файлов не меняется. Отменить можно в разделе «История и откат».", "Перенести");
+      if (!ok) return;
+      const r = await post("/api/check/apply");
+      if (r.error) return tell("Не получилось", r.error);
+      ck.picked.clear();
+      go("report");
+    }, "main"), btn("Открыть «_Проверить»", () => post("/api/reveal", {what: "check"}))));
+}
+
+/* ---------- итог ---------- */
+async function drawFinish() {
+  const box = el("div", {cls: "wrap"}); main.append(box);
+  const f = await get("/api/finish");
+  box.append(el("h1", {}, "Что осталось сделать"));
+  box.append(
+    el("div", {cls: "card"}, el("h2", {style: "margin-top:0"}, "Папка «_Удалить»"),
+      el("p", {}, f.drop.files ? "Файлов: " + num(f.drop.files) + ", " + size(f.drop.bytes) + ". Это снимки с пометкой «Убрать»." : "Пока пусто."),
+      f.drop.files ? el("p", {cls: "mut"}, "Посмотрите папку и, если всё верно, удалите её в проводнике: выделите и нажмите Shift+Delete. Программа сама файлы не удаляет. После удаления вернуть их будет нельзя, а пока папка на месте, всё можно отменить.") : null,
+      f.drop.files ? btn("Открыть папку", () => post("/api/reveal", {what: "drop"})) : null),
+    el("div", {cls: "card"}, el("h2", {style: "margin-top:0"}, "Папка «_Дубли»"),
+      el("p", {}, f.dups.files ? "Файлов: " + num(f.dups.files) + ", " + size(f.dups.bytes) + ". В основном это точные копии: оригиналы лежат в других папках." : "Пока пусто."),
+      f.dups.files ? btn("Открыть папку", () => post("/api/reveal", {what: "dups"})) : null),
+    el("div", {cls: "card"}, el("h2", {style: "margin-top:0"}, "Папка «_Проверить»"),
+      el("p", {}, S.undated ? "Файлов без даты съёмки: " + num(S.undated) + ". Укажите для них месяц или год, и они переедут в папки по годам." : "Пусто: у всех файлов есть дата."),
+      S.undated ? btn("Указать даты", () => go("check")) : null),
+    el("div", {cls: "card"}, el("h2", {style: "margin-top:0"}, "Папка «_Разбор фото»"),
+      el("p", {cls: "mut"}, "Журналы отката и служебная база. Не удаляйте её, пока хотите иметь возможность отменить действия.")),
+    el("div", {cls: "row"}, btn("Открыть выбранную папку", () => post("/api/reveal", {what: "root"})), btn("История и откат", () => go("history"))));
+}
+
+/* ---------- история ---------- */
+async function drawHistory() {
+  const box = el("div", {cls: "wrap"}); main.append(box);
+  const j = (await get("/api/journals")).journals;
+  box.append(el("h1", {}, "История и откат"), el("p", {cls: "mut"}, "Отменить можно последнюю операцию, затем предыдущую. Файлы вернутся на прежние места с прежними датами."));
+  if (!j.length) box.append(el("p", {}, "Пока ничего не перемещалось."));
+  const rows = j.map(x => el("tr", {}, el("td", {}, x.title, el("br"), el("span", {cls: "mut"}, x.time)),
+    el("td", {cls: "n"}, num(x.moved) + " из " + num(x.total)),
+    el("td", {}, x.rolled_back ? "отменена" : x.finished ? "выполнена" : "не закончена"),
+    el("td", {}, x.can_rollback ? btn("Отменить", async () => {
+      const ok = await ask("Отменить операцию?", "Файлы вернутся на прежние места: " + num(x.moved) + ".", "Отменить операцию");
+      if (!ok) return;
+      const r = await post("/api/rollback", {name: x.name});
+      if (r.error) return tell("Не получилось", r.error);
+      go("report");
+    }, "danger") : null)));
+  if (j.length) box.append(el("div", {cls: "card"}, el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Операция"), el("th", {cls: "n"}, "Файлов"), el("th", {}, "Состояние"), el("th", {}))), el("tbody", {}, rows))));
+}
+
+/* ---------- обучение ---------- */
+// Рисунки вместо снимков: в обучении нет ни одного файла пользователя.
+function demoScene(arms) {
+  const pose = {down: "M60 62 L46 82 M60 62 L74 82", up: "M60 62 L44 42 M60 62 L76 42", wave: "M60 62 L46 82 M60 62 L78 44"}[arms];
+  return `<svg viewBox="0 0 120 100" role="img" aria-label="Рисунок: человек на фоне холмов"><rect width="120" height="100" fill="#bfe0f2"/><circle cx="98" cy="20" r="10" fill="#f6c945"/><path d="M0 80 Q40 50 80 76 T120 70 V100 H0Z" fill="#7dbb7a"/><circle cx="60" cy="48" r="8" fill="#e9b48f"/><path d="M60 56 V78 M60 78 L50 96 M60 78 L70 96 ${pose}" stroke="#34506b" stroke-width="5" stroke-linecap="round" fill="none"/></svg>`;
+}
+const TOUR = [
+  {title: "Наведём порядок в фото", draw: () => [
+    el("p", {}, "Программа разложит фото и видео по годам, найдёт копии и поможет выбрать лучшие кадры. За минуту покажем, как всё устроено."),
+    el("div", {cls: "points"},
+      el("div", {cls: "point"}, el("span", {cls: "num"}, "1"), el("span", {}, el("b", {}, "Фото остаются у вас"), "Всё работает на этом компьютере, интернет не нужен.")),
+      el("div", {cls: "point"}, el("span", {cls: "num"}, "2"), el("span", {}, el("b", {}, "Сначала план, потом действия"), "Файлы переедут только после вашего подтверждения.")),
+      el("div", {cls: "point"}, el("span", {cls: "num"}, "3"), el("span", {}, el("b", {}, "Всё можно отменить"), "Программа только перемещает файлы, а удаляете их вы сами.")))]},
+  {title: "Выберите папку и отметьте альбомы", draw: () => [
+    el("p", {}, "На вкладке «Папка» нажмите «Выбрать папку» и укажите в окне проводника диск или папку с фото. Затем на вкладке «Настройки» отметьте готовые альбомы."),
+    el("div", {cls: "card"},
+      el("label", {cls: "opt"}, el("input", {type: "checkbox", checked: true, disabled: true}), el("span", {}, "Свадьба", el("br"), el("span", {cls: "mut"}, "Отмечено: альбом останется как есть"))),
+      el("label", {cls: "opt"}, el("input", {type: "checkbox", disabled: true}), el("span", {}, "Всё с телефона", el("br"), el("span", {cls: "mut"}, "Не отмечено: разложится по годам и месяцам")))),
+    el("p", {cls: "mut"}, "Сетевые, облачные и системные папки программа не примет: так безопаснее.")]},
+  {title: "Посмотрите план", draw: () => [
+    el("p", {}, "На вкладке «Анализ и раскладка» программа сначала только читает файлы. На большом архиве это может занять часы, но прерваться можно в любой момент."),
+    el("div", {cls: "way"},
+      el("code", {}, "IMG_0001.jpg"), el("span", {}, "→"), el("code", {}, "Фото по годам\\2019\\2019-05"),
+      el("code", {}, "Копия этого снимка"), el("span", {}, "→"), el("code", {}, "_Дубли"),
+      el("code", {}, "Снимок с неясной датой"), el("span", {}, "→"), el("code", {}, "_Проверить")),
+    el("p", {}, "Посмотрите, что куда переедет, и нажмите «Разложить файлы». До этого на диске ничего не перемещается."),
+    el("p", {cls: "mut"}, "Для снимков из «_Проверить» дату можно указать потом на вкладке «Без даты». Программа подскажет её по соседним кадрам и названию папки.")]},
+  {title: "Попробуйте выбрать кадры", draw: drawTourPractice},
+  {title: "Последний шаг за вами", draw: () => [
+    el("p", {}, "Снимки с пометкой «Убрать» не удаляются, а переезжают в папку «_Удалить»."),
+    el("div", {cls: "points"},
+      el("div", {cls: "point"}, el("span", {cls: "num"}, "1"), el("span", {}, el("b", {}, "Вкладка «Итог»"), "Откройте «_Удалить», проверьте и удалите папку сами. После этого файлы уже не вернуть.")),
+      el("div", {cls: "point"}, el("span", {cls: "num"}, "2"), el("span", {}, el("b", {}, "Вкладка «История и откат»"), "Передумали? Отмените последнюю операцию, и файлы вернутся на свои места."))),
+    el("p", {}, "Вкладки пронумерованы по порядку работы, а над экраном подсказка «Следующий шаг» говорит, что сделать дальше."),
+    el("p", {}, "Фото на внешнем диске? Перед тем как его отключить, нажмите вверху «Пауза»."),
+    el("p", {cls: "mut"}, "Вернуться к обучению можно кнопкой «Обучение» вверху.")]},
+];
+const PRACTICE = 3;
+let tour = {step: 0, marks: [true, false, true], tried: false};
+function drawTourPractice() {
+  const tiles = [["down", "Кадр 1"], ["down", "Кадр 2: почти такой же"], ["up", "Кадр 3: другая поза"]];
+  const grid = el("div", {cls: "demo"});
+  const feedback = el("p", {id: "tourfeedback", cls: "mut", "aria-live": "polite"});
+  const draw = () => {
+    grid.textContent = "";
+    tiles.forEach(([arms, label], i) => {
+      const keep = tour.marks[i];
+      const toggle = () => { tour.marks[i] = !tour.marks[i]; tour.tried = true; draw(); };
+      grid.append(el("div", {cls: "ph " + (keep ? "keep" : "drop"), role: "button", tabindex: 0, "aria-pressed": String(keep),
+        on: {click: toggle, keydown: e => { if (e.key === " ") { e.preventDefault(); toggle(); } }}},
+        el("div", {cls: "mark"}, el("span", {cls: "badge"}, keep ? "Оставить" : "Убрать"),
+          btn("Только это", e => { e.stopPropagation(); tour.marks = tour.marks.map((_, n) => n === i); tour.tried = true; draw(); })),
+        el("div", {innerHTML: demoScene(arms)}), el("div", {cls: "info"}, label, ", клавиша " + (i + 1))));
+    });
+    const kept = tour.marks.filter(Boolean).length;
+    feedback.textContent = !tour.tried ? "Попробуйте: нажмите на снимок или клавишу 1, 2 или 3." :
+      kept === 0 ? "Убраны все кадры. В настоящем разборе программа предупредит об этом перед применением." :
+      "Получилось. Оставлено: " + kept + ", убрано: " + (3 - kept) + ".";
+  };
+  draw();
+  return [el("p", {}, "На вкладке «Разбор похожих» снимки одной съёмки показаны вместе. Копии уже помечены «Убрать», но решаете вы. Это только пример."), grid, feedback,
+    el("p", {cls: "mut"}, "В настоящем разборе «Дальше» или Enter открывает следующую группу. Группы, которые вы не смотрели, останутся как есть. Если рядом лежат снимок айфона и его правка (IMG_E…), программа подпишет правку, а клавиша 0 уберёт все правки в группе.")];
+}
+function drawTour() {
+  const s = TOUR[tour.step], last = tour.step === TOUR.length - 1;
+  const dots = $("tourdots"); dots.textContent = "";
+  TOUR.forEach((_, i) => dots.append(el("i", {cls: i <= tour.step ? "on" : ""})));
+  $("tourstep").textContent = "Шаг " + (tour.step + 1) + " из " + TOUR.length;
+  const body = $("tourbody"); body.textContent = ""; body.scrollTop = 0;
+  body.append(el("h2", {id: "tourtitle"}, s.title), ...s.draw());
+  const next = btn(last ? "Начать работу" : "Дальше", () => last ? closeTour() : tourGo(1), "main");
+  const foot = $("tourfoot"); foot.textContent = "";
+  foot.append(last ? el("span") : btn("Пропустить", closeTour),
+    el("div", {cls: "row"}, tour.step ? btn("Назад", () => tourGo(-1)) : null, next));
+  next.focus();
+}
+function tourGo(d) { tour.step = Math.max(0, Math.min(TOUR.length - 1, tour.step + d)); drawTour(); }
+function openTour() {
+  tour = {step: 0, marks: [true, false, true], tried: false};
+  drawTour();
+  $("tour").showModal();
+  $("tourfoot").querySelector("button.main").focus();
+}
+function closeTour() {
+  if ($("tour").open) $("tour").close();
+  post("/api/tutorial/done");
+  S.tutorial_done = true;
+}
+function tourKey(e) {
+  if (e.key === "ArrowRight") { e.preventDefault(); if (tour.step < TOUR.length - 1) tourGo(1); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); if (tour.step) tourGo(-1); }
+  else if (tour.step === PRACTICE && "123".includes(e.key)) { e.preventDefault(); $("tourbody").querySelectorAll(".ph")[+e.key - 1].click(); }
+}
+$("tour").addEventListener("cancel", e => { e.preventDefault(); closeTour(); });  // Esc — то же, что «Пропустить»
+$("tourbtn").addEventListener("click", openTour);
+
+$("quit").addEventListener("click", async () => {
+  if (S.job && S.job.status === "running") {
+    const ok = await ask("Работа ещё идёт", "Остановить её и выйти? Продолжить можно при следующем запуске.", "Остановить и выйти");
+    if (!ok) return;
+    await post("/api/cancel");
+  }
+  await post("/api/quit");
+  document.body.textContent = "";
+  document.body.append(el("div", {style: "padding:40px;text-align:center"}, "Программа закрыта. Это окно можно закрыть."));
+  window.close();
+});
+// Каждое окно отзывается программе. Когда закрывают последнее окно, программа завершается сама.
+const PAGE = Math.random().toString(36).slice(2) + Date.now().toString(36);
+const ping = () => post("/api/ping", {page: PAGE}).catch(() => {});
+ping();
+setInterval(ping, 30000);
+addEventListener("pagehide", () => {
+  fetch("/api/bye", {method: "POST", keepalive: true, headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: JSON.stringify({page: PAGE})});
+});
+(async () => {
+  await refresh();
+  await go(S.root ? "report" : "pick");
+  if (!S.tutorial_done) openTour();
+})();
+</script>
+</body>
+</html>

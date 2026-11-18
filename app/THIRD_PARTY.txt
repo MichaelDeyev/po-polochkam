@@ -1,0 +1,9 @@
+В программу «По полочкам» входят сторонние компоненты. Их условия действуют как есть.
+
+ExifTool, Phil Harvey — https://exiftool.org — лицензия Perl (Artistic License или GPL).
+Python — https://www.python.org — PSF License.
+Pillow — https://python-pillow.org — MIT-CMU (HPND).
+NumPy — https://numpy.org — BSD-3-Clause.
+pillow-heif — https://github.com/bigcat88/pillow_heif — BSD-3-Clause; содержит libheif (LGPL-3.0), libde265 (LGPL-3.0) и x265 (GPL-2.0).
+PyInstaller — https://pyinstaller.org — GPL-2.0 с исключением для собранных программ.
+Inno Setup, Jordan Russell и Martijn Laan — https://jrsoftware.org — лицензия Inno Setup (из него сделан установщик).
